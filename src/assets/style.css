@@ -12,7 +12,7 @@ body {
     max-width: 100%;
 }
 #terminal {
-    height: 100vh;
+    height: calc(100vh - 40px);
 }
 :root {
     --background: #031e11;
@@ -222,8 +222,8 @@ https://blog.carbonfive.com/2015/01/07/vintage-terminal-effect-in-css3/
     padding-bottom: 36px;
 }
 .collection {
-    position: absolute;
+    position: fixed;
     bottom: 0;
-    left: 0;
+    right: 0;
     padding: 10px;
 }

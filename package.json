@@ -9,9 +9,12 @@
   },
   "dependencies": {
     "@walletconnect/web3-provider": "^1.7.8",
+    "axios": "^0.27.2",
     "core-js": "^3.6.5",
     "jquery": "^3.6.0",
     "jquery.terminal": "^2.33.1",
+    "keccak256": "^1.0.6",
+    "merkletreejs": "^0.2.31",
     "vue": "^2.6.11",
     "vue-router": "^3.2.0",
     "web3": "^1.7.3",
