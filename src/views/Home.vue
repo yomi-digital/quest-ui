@@ -395,7 +395,7 @@ export default {
       const app = this;
       if (app.account.length > 0) {
         if (quest.length > 0) {
-          app.term.echo("Checking if you born yet...");
+          app.clear()
           const contract = new app.web3.eth.Contract(app.ABI, app.contract);
           const birthday = await contract.methods.birthdays(app.account).call();
           if (parseInt(birthday) > 0) {
@@ -524,6 +524,7 @@ export default {
         name: "yomi-quest",
         greetings: `Welcome to YOMI Quest, an on-chain game based on cryptographic proofs.\n`,
         onResize: app.set_size(),
+        scrollOnEcho: true,
         exit: false,
         // detect iframe codepen preview
         enabled: $("body").attr("onload") === undefined,
