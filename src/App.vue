@@ -1,9 +1,9 @@
 <template>
   <div id="app">
     <div id="nav">
-      <router-link to="/">YOMI QUEST</router-link> |
+      <router-link to="/">YOMI QUEST</router-link><!-- |
       <router-link to="/about">About</router-link> |
-      <router-link to="/leaderboard">Leaderboard</router-link>
+      <router-link to="/leaderboard">Leaderboard</router-link>-->
     </div>
     <router-view style="margin-top:40px" />
     <div class="collection external terminal">
