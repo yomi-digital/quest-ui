@@ -292,7 +292,7 @@ export default {
           app.account = accounts[0];
           app.term.echo("Connected to account: " + app.account);
           $("#audio").html(
-            '<audio id="player" controls loop><source src="/sounds/rocket.mp3"></audio>'
+            '<audio id="player" controls><source src="/sounds/rocket.mp3"></audio>'
           );
           setInterval(function () {
             $("#player").trigger("play");
@@ -321,7 +321,7 @@ export default {
             });
           app.term.echo("Successfully subscribed!");
           $("#audio").html(
-            '<audio id="player" controls loop><source src="/sounds/coin.mp3"></audio>'
+            '<audio id="player" controls><source src="/sounds/coin.mp3"></audio>'
           );
           setInterval(function () {
             $("#player").trigger("play");
@@ -429,7 +429,7 @@ export default {
             }
           } else {
             $("#audio").html(
-              '<audio id="player" controls loop><source src="/sounds/completed.mp3"></audio>'
+              '<audio id="player" controls><source src="/sounds/completed.mp3"></audio>'
             );
             setInterval(function () {
               $("#player").trigger("play");
@@ -533,7 +533,7 @@ export default {
                   if (levelBefore === levelAfter) {
                     app.term.echo("\n--\nOh NO!\n\nAnswer was wrong...retry!!");
                     $("#audio").html(
-                      '<audio id="player" controls loop><source src="/sounds/wrong.mp3"></audio>'
+                      '<audio id="player" controls><source src="/sounds/wrong.mp3"></audio>'
                     );
                     setInterval(function () {
                       $("#player").trigger("play");
@@ -543,7 +543,7 @@ export default {
                       "\n--\nOh YEAH!\n\nAnswer was correct, go ahead!!"
                     );
                     $("#audio").html(
-                      '<audio id="player" controls loop><source src="/sounds/clap.mp3"></audio>'
+                      '<audio id="player" controls><source src="/sounds/clap.mp3"></audio>'
                     );
                     setInterval(function () {
                       $("#player").trigger("play");
