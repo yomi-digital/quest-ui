@@ -40,6 +40,25 @@ export default {
         {
           inputs: [
             {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          name: "nft_kind",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
               internalType: "address",
               name: "_owner",
               type: "address",
@@ -270,6 +289,7 @@ export default {
         const contract = new app.web3.eth.Contract(app.ABI, app.contract);
         const birthday = await contract.methods.birthdays(app.account).call();
         if (parseInt(birthday) === 0) {
+          app.term.echo("Please confirm operation in your wallet...");
           const birth_fee = await contract.methods.BIRTH_FEE().call();
           console.log("Birth fee is:", birth_fee);
           const tx = await contract.methods
@@ -310,6 +330,7 @@ export default {
             .call();
           if (game_instructions !== undefined && game_instructions.length > 0) {
             app.term.echo("Found instructions endpoint: " + game_instructions);
+            app.term.echo("Downloading instructions, please wait..");
             const instructions = await axios.get(
               game_instructions.replace(
                 "ipfs://",
@@ -378,7 +399,16 @@ export default {
               app.term.echo("\n");
             }
           } else {
-            app.term.echo("Sorry! This level not exists yet!");
+            app.term.echo("")
+            app.term.echo("")
+            app.term.echo(
+              "Thanks for completing this beta version of YOMI QUEST!"
+            );
+            app.term.echo(
+              "If you liked this project please write [[b;#fff;]love] and press [[b;#fff;]ENTER]"
+            );
+            app.term.echo("")
+            app.term.echo("")
           }
         } else {
           app.term.echo(
@@ -395,7 +425,7 @@ export default {
       const app = this;
       if (app.account.length > 0) {
         if (quest.length > 0) {
-          app.clear()
+          app.clear();
           const contract = new app.web3.eth.Contract(app.ABI, app.contract);
           const birthday = await contract.methods.birthdays(app.account).call();
           if (parseInt(birthday) > 0) {
@@ -425,38 +455,56 @@ export default {
             app.term.echo(
               "You own " +
                 tokensOfOwnerBefore.length +
-                " NFTs, using #" +
-                tokensOfOwnerBefore[0] +
-                " as fee."
+                " NFTs, searching useful token for coin."
             );
             if (tokensOfOwnerBefore.length > 0) {
-              const tokenId = tokensOfOwnerBefore[0];
-              try {
-                await contract.methods
-                  .solveGame(level, proof, solution, tokenId)
-                  .send({
-                    from: app.account,
-                    value: price.toString(),
-                  })
-                  .on("transactionHash", (pending) => {
-                    app.term.echo(
-                      "Waiting for transaction at " + pending + "..."
-                    );
-                  });
-                const levelAfter = await contract.methods
-                  .levels(app.account)
+              let coin;
+              let found = false;
+              let r = 0;
+              while (found === false) {
+                const kind = await contract.methods
+                  .nft_kind(tokensOfOwnerBefore[r])
                   .call();
-                app.term.echo("\n--\nTransaction completed!");
-                app.term.echo("Your level now is: " + levelAfter);
-                const tokensOfOwnerAfter = await contract.methods
-                  .tokensOfOwner(app.account)
-                  .call();
-                app.term.echo(
-                  "You own " + tokensOfOwnerAfter.length + " NFTs now!"
-                );
-              } catch (e) {
-                app.term.echo("Oh no! There's an error!");
-                app.term.echo(e.message);
+                if (parseInt(kind) === 0) {
+                  found = true;
+                  coin = tokensOfOwnerBefore[r];
+                  app.term.echo("Found token to use as coin: " + coin);
+                }
+                r++;
+                if (r === tokensOfOwnerBefore.length) {
+                  found = true;
+                }
+              }
+              if (coin !== undefined) {
+                try {
+                  await contract.methods
+                    .solveGame(level, proof, solution, coin)
+                    .send({
+                      from: app.account,
+                      value: price.toString(),
+                    })
+                    .on("transactionHash", (pending) => {
+                      app.term.echo(
+                        "Waiting for transaction at " + pending + "..."
+                      );
+                    });
+                  const levelAfter = await contract.methods
+                    .levels(app.account)
+                    .call();
+                  app.term.echo("\n--\nTransaction completed!");
+                  app.term.echo("Your level now is: " + levelAfter);
+                  const tokensOfOwnerAfter = await contract.methods
+                    .tokensOfOwner(app.account)
+                    .call();
+                  app.term.echo(
+                    "You own " + tokensOfOwnerAfter.length + " NFTs now!"
+                  );
+                } catch (e) {
+                  app.term.echo("Oh no! There's an error!");
+                  app.term.echo(e.message);
+                }
+              } else {
+                app.term.echo("Can't find coins on your wallet!");
               }
             } else {
               app.term.echo("Sorry, you must own at least 1 NFT to play!");
