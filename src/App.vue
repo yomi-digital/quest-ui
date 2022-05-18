@@ -1,13 +1,13 @@
 <template>
   <div id="app">
-    <div id="nav">
-      <router-link to="/">YOMI QUEST</router-link><!-- |
+    <div id="nav" style="text-align:right">
+      <a href="https://twitter.com/YOMI_WEB3" target="_blank" style="color:green; margin-right:30px">FOLLOW US</a><!-- |
       <router-link to="/about">About</router-link> |
       <router-link to="/leaderboard">Leaderboard</router-link>-->
     </div>
     <router-view style="margin-top:40px" />
-    <div class="collection external terminal">
-      Made with ❤️ at <a href="https://yomi.digital">YOMI</a>
+    <div class="collection external terminal" style="width:100%; background:#000; text-align:right; color: green">
+      Made with ❤️ at <a href="https://yomi.digital" style="color:green">YOMI</a>
     </div>
   </div>
 </template>

@@ -229,7 +229,7 @@ export default {
         "[[b;#fff;]connect]: Establish the connection to your wallet"
       );
       app.term.echo(
-        "[[b;#fff;]start]: Start the game subscribing yourself, when subscribed you receive 20 life NFTs needed to play"
+        "[[b;#fff;]register]: Subscribe to game, when subscribed you receive 20 life NFTs needed to play, this can be done once per address"
       );
       app.term.echo(
         "[[b;#fff;]play]: Show your current level, allowing you to get clues to solve the game"
@@ -280,12 +280,12 @@ export default {
           app.account = accounts[0];
           app.term.echo("Connected to account: " + app.account);
           $("#audio").html(
-            '<audio autoplay><source src="/sounds/coin.mp3"></audio>'
+            '<audio autoplay><source src="/sounds/rocket.mp3"></audio>'
           );
         }
       }
     },
-    async start() {
+    async register() {
       const app = this;
       if (app.account.length > 0) {
         app.term.echo("Checking if you born yet...");
@@ -305,6 +305,9 @@ export default {
               app.term.echo("Waiting for transaction at " + pending + "...");
             });
           app.term.echo("Successfully subscribed!");
+          $("#audio").html(
+            '<audio autoplay><source src="/sounds/coin.mp3"></audio>'
+          );
           console.log(tx);
         } else {
           app.term.echo(
@@ -320,7 +323,6 @@ export default {
     async play() {
       const app = this;
       if (app.account.length > 0) {
-        app.term.echo("Checking if you born yet...");
         const contract = new app.web3.eth.Contract(app.ABI, app.contract);
         const birthday = await contract.methods.birthdays(app.account).call();
         if (parseInt(birthday) > 0) {
@@ -421,7 +423,7 @@ export default {
           }
         } else {
           app.term.echo(
-            "Need to setup your account first, please write [[b;#fff;]start] and press [[b;#fff;]ENTER]!"
+            "Need to setup your account first, please write [[b;#fff;]register] and press [[b;#fff;]ENTER]!"
           );
         }
       } else {
@@ -535,7 +537,7 @@ export default {
             }
           } else {
             app.term.echo(
-              "Need to setup your account first, please write [[b;#fff;]start] and press [[b;#fff;]ENTER]!"
+              "Need to setup your account first, please write [[b;#fff;]register] and press [[b;#fff;]ENTER]!"
             );
           }
         } else {
@@ -594,7 +596,7 @@ export default {
       },
       {
         name: "yomi-quest",
-        greetings: `Welcome to YOMI Quest, an on-chain game based on cryptographic proofs.\n`,
+        greetings: ``,
         onResize: app.set_size(),
         scrollOnEcho: true,
         exit: false,
@@ -602,9 +604,49 @@ export default {
         enabled: $("body").attr("onload") === undefined,
         onInit: function () {
           app.set_size();
-          this.echo(
-            "Type [[b;#fff;]help] and press [[b;#fff;]ENTER] to get instructions on how to proceed.\nNo worries, this is just a game, you're no hacking and your computer is completely safe!\n\n"
+          $("#audio").html(
+            '<audio autoplay loop><source src="/sounds/enter.mp3"></audio>'
           );
+          var img = new Image();
+          img.onload = function () {
+            var canvas = $("<canvas/>");
+            var context = canvas[0].getContext("2d");
+            canvas.attr({
+              width: img.width,
+              height: img.height,
+            });
+            app.term.echo(function () {
+              var cols = app.term.cols();
+              var width = cols / 5;
+              var height = (width * img.height) / img.width;
+              // height / 2 because dimension of single character is not square
+              context.drawImage(img, 0, 0, width, height / 2);
+              try {
+                app.term.echo(
+                  app.asciify(context, " `~:*iVOEM", width, height / 2)
+                );
+                app.term.echo("Welcome to YOMI Quest Demo,\nan on-chain game based on cryptographic proofs.\n\nWe're playing on Rinkeby network, so right now you'll not spend nor gain real money.\nYou will try to resolve 5 different quests, do your best to be the first!\n\nA public list of champions will be available as soon as the game start and\nyou'll be able to win real NFTs from our Autonomous Design collection.\n\n\n--")
+                app.term.echo(
+                  "\n\nType [[b;#fff;]help] and press [[b;#fff;]ENTER] to get instructions on how to proceed.\nNo worries, this is just a game, you're no hacking and your computer is completely safe!"
+                );
+                return "\n";
+              } catch (e) {
+                app.term.exception(e);
+                return "";
+              }
+            });
+          };
+          axios
+            .get(
+              "https://ipfs.yomi.digital/ipfs/QmcYHMf9mGzmhZgyRuYpzkM9cmYJ1c3J5VWyywUW3HDnEF",
+              { responseType: "arraybuffer" }
+            )
+            .then((response) => {
+              let blob = new Blob([response.data], {
+                type: response.headers["content-type"],
+              });
+              img.src = URL.createObjectURL(blob);
+            });
         },
         prompt: "web3> ",
       }
