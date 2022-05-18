@@ -3,6 +3,7 @@
     <div id="terminal"></div>
     <div class="flicker"></div>
     <div class="scanlines"></div>
+    <span id="audio"></span>
   </div>
 </template>
 
@@ -16,7 +17,6 @@ const keccak256 = require("keccak256");
 const { MerkleTree } = require("merkletreejs");
 const axios = require("axios");
 var __EVAL = (s) => eval(`void (__EVAL = ${__EVAL}); ${s}`);
-
 export default {
   name: "Home",
   data() {
@@ -279,6 +279,9 @@ export default {
         if (accounts.length > 0) {
           app.account = accounts[0];
           app.term.echo("Connected to account: " + app.account);
+          $("#audio").html(
+            '<audio autoplay><source src="/sounds/coin.mp3"></audio>'
+          );
         }
       }
     },
@@ -329,6 +332,9 @@ export default {
             .game_instructions(level)
             .call();
           if (game_instructions !== undefined && game_instructions.length > 0) {
+            $("#audio").html(
+              '<audio autoplay loop><source src="/sounds/play.mp3"></audio>'
+            );
             app.term.echo("Found instructions endpoint: " + game_instructions);
             app.term.echo("Downloading instructions, please wait..");
             const instructions = await axios.get(
@@ -399,6 +405,9 @@ export default {
               app.term.echo("\n");
             }
           } else {
+            $("#audio").html(
+              '<audio autoplay><source src="/sounds/completed.mp3"></audio>'
+            );
             app.term.echo("");
             app.term.echo("");
             app.term.echo(
@@ -497,8 +506,16 @@ export default {
                   app.term.echo("Your level now is: " + levelAfter);
                   if (levelBefore === levelAfter) {
                     app.term.echo("\n--\nOh NO!\n\nAnswer was wrong...retry!!");
+                    $("#audio").html(
+                      '<audio autoplay><source src="/sounds/wrong.mp3"></audio>'
+                    );
                   } else {
-                    app.term.echo("\n--\nOh YEAH!\n\nAnswer was correct, go ahead!!");
+                    app.term.echo(
+                      "\n--\nOh YEAH!\n\nAnswer was correct, go ahead!!"
+                    );
+                    $("#audio").html(
+                      '<audio autoplay><source src="/sounds/clap.mp3"></audio>'
+                    );
                   }
                   const tokensOfOwnerAfter = await contract.methods
                     .tokensOfOwner(app.account)
