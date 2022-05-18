@@ -671,12 +671,11 @@ export default {
         onInit: function () {
           app.set_size();
           $("#audio").html(
-            '<audio id="player" controls loop><source src="/sounds/enter.mp3"></audio>'
+            '<audio id="base" controls loop><source src="/sounds/enter.mp3"></audio>'
           );
-          const playInterval = setInterval(function () {
+          setInterval(function () {
             try {
-              $("#player").trigger("play");
-              clearTimeout(playInterval);
+              $("#base").trigger("play");
             } catch (e) {
               console.log(e);
               console.log("CAN'T PLAY");
