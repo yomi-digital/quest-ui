@@ -1,9 +1,21 @@
 <template>
   <div class="home">
+    <div
+      id="audio"
+      style="
+        position: fixed;
+        width: 100%;
+        bacgkround: red;
+        height: 90px;
+        bottom: 0;
+        left: 0;
+        z-index: -1;
+        opacity: -1;
+      "
+    ></div>
     <div id="terminal"></div>
     <div class="flicker"></div>
     <div class="scanlines"></div>
-    <span id="audio"></span>
   </div>
 </template>
 
@@ -280,8 +292,11 @@ export default {
           app.account = accounts[0];
           app.term.echo("Connected to account: " + app.account);
           $("#audio").html(
-            '<audio autoplay><source src="/sounds/rocket.mp3"></audio>'
+            '<audio id="player" controls loop><source src="/sounds/rocket.mp3"></audio>'
           );
+          setInterval(function () {
+            $("#player").trigger("play");
+          }, 200);
         }
       }
     },
@@ -306,8 +321,11 @@ export default {
             });
           app.term.echo("Successfully subscribed!");
           $("#audio").html(
-            '<audio autoplay><source src="/sounds/coin.mp3"></audio>'
+            '<audio id="player" controls loop><source src="/sounds/coin.mp3"></audio>'
           );
+          setInterval(function () {
+            $("#player").trigger("play");
+          }, 200);
           console.log(tx);
         } else {
           app.term.echo(
@@ -335,8 +353,11 @@ export default {
             .call();
           if (game_instructions !== undefined && game_instructions.length > 0) {
             $("#audio").html(
-              '<audio autoplay loop><source src="/sounds/play.mp3"></audio>'
+              '<audio id="player" controls loop><source src="/sounds/play.mp3"></audio>'
             );
+            setInterval(function () {
+              $("#player").trigger("play");
+            }, 200);
             app.term.echo("Found instructions endpoint: " + game_instructions);
             app.term.echo("Downloading instructions, please wait..");
             const instructions = await axios.get(
@@ -408,8 +429,11 @@ export default {
             }
           } else {
             $("#audio").html(
-              '<audio autoplay><source src="/sounds/completed.mp3"></audio>'
+              '<audio id="player" controls loop><source src="/sounds/completed.mp3"></audio>'
             );
+            setInterval(function () {
+              $("#player").trigger("play");
+            }, 200);
             app.term.echo("");
             app.term.echo("");
             app.term.echo(
@@ -509,15 +533,21 @@ export default {
                   if (levelBefore === levelAfter) {
                     app.term.echo("\n--\nOh NO!\n\nAnswer was wrong...retry!!");
                     $("#audio").html(
-                      '<audio autoplay><source src="/sounds/wrong.mp3"></audio>'
+                      '<audio id="player" controls loop><source src="/sounds/wrong.mp3"></audio>'
                     );
+                    setInterval(function () {
+                      $("#player").trigger("play");
+                    }, 200);
                   } else {
                     app.term.echo(
                       "\n--\nOh YEAH!\n\nAnswer was correct, go ahead!!"
                     );
                     $("#audio").html(
-                      '<audio autoplay><source src="/sounds/clap.mp3"></audio>'
+                      '<audio id="player" controls loop><source src="/sounds/clap.mp3"></audio>'
                     );
+                    setInterval(function () {
+                      $("#player").trigger("play");
+                    }, 200);
                   }
                   const tokensOfOwnerAfter = await contract.methods
                     .tokensOfOwner(app.account)
@@ -605,8 +635,11 @@ export default {
         onInit: function () {
           app.set_size();
           $("#audio").html(
-            '<audio autoplay loop><source src="/sounds/enter.mp3"></audio>'
+            '<audio id="player" controls loop><source src="/sounds/enter.mp3"></audio>'
           );
+          setInterval(function () {
+            $("#player").trigger("play");
+          }, 200);
           var img = new Image();
           img.onload = function () {
             var canvas = $("<canvas/>");
@@ -625,9 +658,11 @@ export default {
                 app.term.echo(
                   app.asciify(context, " `~:*iVOEM", width, height / 2)
                 );
-                app.term.echo("Welcome to YOMI Quest Demo,\nan on-chain game based on cryptographic proofs.\n\nWe're playing on Rinkeby network, so right now you'll not spend nor gain real money.\nYou will try to resolve 5 different quests, do your best to be the first!\n\nA public list of champions will be available as soon as the game start and\nyou'll be able to win real NFTs from our Autonomous Design collection.\n\n\n--")
                 app.term.echo(
-                  "\n\nType [[b;#fff;]help] and press [[b;#fff;]ENTER] to get instructions on how to proceed.\nNo worries, this is just a game, you're no hacking and your computer is completely safe!"
+                  "Welcome to YOMI Quest Demo,\nan on-chain game based on cryptographic proofs.\n\nWe're playing on Rinkeby network, so right now you'll not spend nor gain real money.\nYou will try to resolve 5 different quests, do your best to be the first!\n\nA public list of champions will be available as soon as the game start and\nyou'll be able to win real NFTs from our Autonomous Design collection.\n\n\n--"
+                );
+                app.term.echo(
+                  "\n\nType [[b;#fff;]help] and press [[b;#fff;]ENTER] to get instructions on how to proceed.\nNo worries, this is just a game, you're no hacking and your computer is completely safe!\n\nTurn ON audio for a better experience!!"
                 );
                 return "\n";
               } catch (e) {
