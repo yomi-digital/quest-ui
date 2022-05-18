@@ -399,16 +399,16 @@ export default {
               app.term.echo("\n");
             }
           } else {
-            app.term.echo("")
-            app.term.echo("")
+            app.term.echo("");
+            app.term.echo("");
             app.term.echo(
               "Thanks for completing this beta version of YOMI QUEST!"
             );
             app.term.echo(
               "If you liked this project please write [[b;#fff;]love] and press [[b;#fff;]ENTER]"
             );
-            app.term.echo("")
-            app.term.echo("")
+            app.term.echo("");
+            app.term.echo("");
           }
         } else {
           app.term.echo(
@@ -423,6 +423,7 @@ export default {
     },
     async solve(quest) {
       const app = this;
+      let levelBefore;
       if (app.account.length > 0) {
         if (quest.length > 0) {
           app.clear();
@@ -431,6 +432,7 @@ export default {
           if (parseInt(birthday) > 0) {
             app.term.echo("Checking your level...");
             const level = await contract.methods.levels(app.account).call();
+            levelBefore = level;
             app.term.echo("Your level is: " + level);
 
             quest = quest.map((w) => w.toUpperCase());
@@ -448,7 +450,7 @@ export default {
             });
             const proof = tree.getHexProof(keccak256(solution));
 
-            app.term.echo("Cryptographic proof is:" + JSON.stringify(proof));
+            app.term.echo("Cryptographic proof is: " + JSON.stringify(proof));
             const tokensOfOwnerBefore = await contract.methods
               .tokensOfOwner(app.account)
               .call();
@@ -493,6 +495,11 @@ export default {
                     .call();
                   app.term.echo("\n--\nTransaction completed!");
                   app.term.echo("Your level now is: " + levelAfter);
+                  if (levelBefore === levelAfter) {
+                    app.term.echo("\n--\nOh NO!\n\nAnswer was wrong...retry!!");
+                  } else {
+                    app.term.echo("\n--\nOh YEAH!\n\nAnswer was correct, go ahead!!");
+                  }
                   const tokensOfOwnerAfter = await contract.methods
                     .tokensOfOwner(app.account)
                     .call();
