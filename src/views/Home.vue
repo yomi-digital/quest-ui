@@ -294,8 +294,14 @@ export default {
           $("#audio").html(
             '<audio id="player" controls><source src="/sounds/rocket.mp3"></audio>'
           );
-          setInterval(function () {
-            $("#player").trigger("play");
+          const playInterval = setInterval(function () {
+            try {
+              $("#player").trigger("play");
+              clearTimeout(playInterval);
+            } catch (e) {
+              console.log(e);
+              console.log("CAN'T PLAY");
+            }
           }, 200);
         }
       }
@@ -323,8 +329,14 @@ export default {
           $("#audio").html(
             '<audio id="player" controls><source src="/sounds/coin.mp3"></audio>'
           );
-          setInterval(function () {
-            $("#player").trigger("play");
+          const playInterval = setInterval(function () {
+            try {
+              $("#player").trigger("play");
+              clearTimeout(playInterval);
+            } catch (e) {
+              console.log(e);
+              console.log("CAN'T PLAY");
+            }
           }, 200);
           console.log(tx);
         } else {
@@ -355,8 +367,14 @@ export default {
             $("#audio").html(
               '<audio id="player" controls loop><source src="/sounds/play.mp3"></audio>'
             );
-            setInterval(function () {
-              $("#player").trigger("play");
+            const playInterval = setInterval(function () {
+              try {
+                $("#player").trigger("play");
+                clearTimeout(playInterval);
+              } catch (e) {
+                console.log(e);
+                console.log("CAN'T PLAY");
+              }
             }, 200);
             app.term.echo("Found instructions endpoint: " + game_instructions);
             app.term.echo("Downloading instructions, please wait..");
@@ -431,8 +449,14 @@ export default {
             $("#audio").html(
               '<audio id="player" controls><source src="/sounds/completed.mp3"></audio>'
             );
-            setInterval(function () {
-              $("#player").trigger("play");
+            const playInterval = setInterval(function () {
+              try {
+                $("#player").trigger("play");
+                clearTimeout(playInterval);
+              } catch (e) {
+                console.log(e);
+                console.log("CAN'T PLAY");
+              }
             }, 200);
             app.term.echo("");
             app.term.echo("");
@@ -535,8 +559,14 @@ export default {
                     $("#audio").html(
                       '<audio id="player" controls><source src="/sounds/wrong.mp3"></audio>'
                     );
-                    setInterval(function () {
-                      $("#player").trigger("play");
+                    const playInterval = setInterval(function () {
+                      try {
+                        $("#player").trigger("play");
+                        clearTimeout(playInterval);
+                      } catch (e) {
+                        console.log(e);
+                        console.log("CAN'T PLAY");
+                      }
                     }, 200);
                   } else {
                     app.term.echo(
@@ -545,8 +575,14 @@ export default {
                     $("#audio").html(
                       '<audio id="player" controls><source src="/sounds/clap.mp3"></audio>'
                     );
-                    setInterval(function () {
-                      $("#player").trigger("play");
+                    const playInterval = setInterval(function () {
+                      try {
+                        $("#player").trigger("play");
+                        clearTimeout(playInterval);
+                      } catch (e) {
+                        console.log(e);
+                        console.log("CAN'T PLAY");
+                      }
                     }, 200);
                   }
                   const tokensOfOwnerAfter = await contract.methods
@@ -637,8 +673,14 @@ export default {
           $("#audio").html(
             '<audio id="player" controls loop><source src="/sounds/enter.mp3"></audio>'
           );
-          setInterval(function () {
-            $("#player").trigger("play");
+          const playInterval = setInterval(function () {
+            try {
+              $("#player").trigger("play");
+              clearTimeout(playInterval);
+            } catch (e) {
+              console.log(e);
+              console.log("CAN'T PLAY");
+            }
           }, 200);
           var img = new Image();
           img.onload = function () {
