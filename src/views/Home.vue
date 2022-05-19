@@ -1,18 +1,7 @@
 <template>
   <div class="home">
-    <div
-      id="audio"
-      style="
-        position: fixed;
-        width: 100%;
-        bacgkround: red;
-        height: 90px;
-        bottom: 0;
-        left: 0;
-        z-index: -1;
-        opacity: -1;
-      "
-    ></div>
+    <div id="audio" class="sounds"></div>
+    <div id="base" class="sounds"></div>
     <div id="terminal"></div>
     <div class="flicker"></div>
     <div class="scanlines"></div>
@@ -485,7 +474,6 @@ export default {
       let levelBefore;
       if (app.account.length > 0) {
         if (quest.length > 0) {
-          app.clear();
           const contract = new app.web3.eth.Contract(app.ABI, app.contract);
           const birthday = await contract.methods.birthdays(app.account).call();
           if (parseInt(birthday) > 0) {
@@ -559,6 +547,9 @@ export default {
                     $("#audio").html(
                       '<audio id="player" controls><source src="/sounds/wrong.mp3"></audio>'
                     );
+                    app.term.echo(
+                      "You need to show again the game? Write [[b;#fff;]play] and press [[b;#fff;]ENTER]!"
+                    );
                     const playInterval = setInterval(function () {
                       try {
                         $("#player").trigger("play");
@@ -571,6 +562,9 @@ export default {
                   } else {
                     app.term.echo(
                       "\n--\nOh YEAH!\n\nAnswer was correct, go ahead!!"
+                    );
+                    app.term.echo(
+                      "It's time to solve another quest, write [[b;#fff;]play] and press [[b;#fff;]ENTER]!"
                     );
                     $("#audio").html(
                       '<audio id="player" controls><source src="/sounds/clap.mp3"></audio>'
@@ -585,12 +579,6 @@ export default {
                       }
                     }, 200);
                   }
-                  const tokensOfOwnerAfter = await contract.methods
-                    .tokensOfOwner(app.account)
-                    .call();
-                  app.term.echo(
-                    "You own " + tokensOfOwnerAfter.length + " NFTs now!"
-                  );
                 } catch (e) {
                   app.term.echo("Oh no! There's an error!");
                   app.term.echo(e.message);
@@ -654,6 +642,7 @@ export default {
         const cmd = $.terminal.parse_command(command);
         if (cmd.command !== undefined) {
           try {
+            app.clear();
             app[cmd.name](cmd.args);
           } catch (e) {
             term.error(new String(e));
@@ -670,12 +659,12 @@ export default {
         enabled: $("body").attr("onload") === undefined,
         onInit: function () {
           app.set_size();
-          $("#audio").html(
-            '<audio id="base" controls loop><source src="/sounds/enter.mp3"></audio>'
+          $("#base").html(
+            '<audio id="background" controls loop><source src="/sounds/enter.mp3"></audio>'
           );
           setInterval(function () {
             try {
-              $("#base").trigger("play");
+              $("#background").trigger("play");
             } catch (e) {
               console.log(e);
               console.log("CAN'T PLAY");
@@ -691,8 +680,8 @@ export default {
             });
             app.term.echo(function () {
               var cols = app.term.cols();
-              var width = cols / 5;
-              var height = (width * img.height) / img.width;
+              var width = 35;
+              var height = 30;
               // height / 2 because dimension of single character is not square
               context.drawImage(img, 0, 0, width, height / 2);
               try {

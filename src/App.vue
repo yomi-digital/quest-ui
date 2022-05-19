@@ -1,10 +1,11 @@
 <template>
   <div id="app">
-    <div id="nav" style="text-align: right">
+    <div id="nav">
+      <img src="/yomi.gif" style="height:20px" />
       <a
         href="https://twitter.com/YOMI_WEB3"
         target="_blank"
-        style="color: green; margin-right: 30px"
+        style="color: green; margin-right: 30px; float:right"
         >FOLLOW US</a
       ><!-- |
       <router-link to="/about">About</router-link> |
