@@ -241,10 +241,16 @@ export default {
       app.term.echo(
         "[[b;#fff;]love]: Follow YOMI on Twitter and spread the word!"
       );
+      app.term.echo(
+        "[[b;#fff;]sos]: Enter YOMIVERSE and get help from the community."
+      );
       app.term.echo("\n");
     },
     love() {
       window.open("https://twitter.com/YOMI_WEB3", "_blank");
+    },
+    sos() {
+      window.open("https://discord.gg/2EaXhk9zfE", "_blank");
     },
     clear() {
       const app = this;
@@ -642,8 +648,12 @@ export default {
         const cmd = $.terminal.parse_command(command);
         if (cmd.command !== undefined) {
           try {
-            app.clear();
-            app[cmd.name](cmd.args);
+            if (app[cmd.name] !== undefined) {
+              app.clear();
+              app[cmd.name](cmd.args);
+            } else {
+              app.term.echo("Command not recognized, please retry!");
+            }
           } catch (e) {
             term.error(new String(e));
           }
