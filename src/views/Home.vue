@@ -5,6 +5,47 @@
     <div id="terminal"></div>
     <div class="flicker"></div>
     <div class="scanlines"></div>
+    <div
+      id="died"
+      v-if="died"
+      style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #000;
+      "
+    >
+      <video
+        style="width: 100vw; height: 100vh"
+        width="100%"
+        height="100%"
+        id="died_video"
+        controls
+      >
+        <source src="/you_died.mp4" type="video/mp4" />
+        <source src="/you_died.ogv" type="video/ogg" />
+        <source src="/you_died.webm" type="video/webm" />
+      </video>
+      <div
+        style="
+          position: absolute;
+          top: 0;
+          left: 0;
+          z-index: 999;
+          font-size: 8rem;
+          width: 100%;
+          height: 100vh;
+          line-height: calc(100vh / 2);
+          color: #fff;
+          background: rgba(0, 0, 0, 0.2);
+          text-align: center;
+          font-weight: bold;
+        "
+        v-html="diedText"
+      ></div>
+    </div>
   </div>
 </template>
 
@@ -42,6 +83,8 @@ export default {
       web3: "",
       ABI: abi,
       isWorking: false,
+      died: false,
+      diedText: "",
       timer: "",
       prompt: "",
       spinner: {
@@ -158,8 +201,29 @@ export default {
         // Checking if networkId matches
         const netId = await app.web3.eth.net.getId();
         if (parseInt(netId) !== app.networks[app.network]) {
-          app.term.echo("Switch to " + app.network + " network!");
-          app.done();
+          app.term.echo(
+            "Switching to " +
+              app.network +
+              " network, please confirm on your wallet.."
+          );
+          try {
+            await window.ethereum.request({
+              method: "wallet_switchEthereumChain",
+              params: [
+                {
+                  chainId: "0x4",
+                },
+              ],
+            });
+            app.done();
+            setTimeout(function () {
+              app.connect();
+            }, 100);
+          } catch (e) {
+            app.term.echo(
+              "Can't automatically switch to rinkeby, please do it manually."
+            );
+          }
         } else {
           const accounts = await app.web3.eth.getAccounts();
           if (accounts.length > 0) {
@@ -537,7 +601,19 @@ export default {
                   app.done();
                 }
               } else {
-                app.term.echo("Sorry, you must own at least 1 NFT to play!");
+                app.term.echo("Sorry, you died!");
+                app.died = true;
+                $("#audio").html("");
+                setTimeout(function () {
+                  $("#died_video").trigger("play");
+                });
+                setInterval(function () {
+                  if (app.diedText.length === 0) {
+                    app.diedText = "YOU<br>DIED";
+                  } else {
+                    app.diedText = "";
+                  }
+                }, 300);
                 app.done();
               }
             } else {
@@ -646,9 +722,9 @@ export default {
               app.term.echo(e.message);
               app.done();
             }
-          }else{
-            app.term.echo("Nothing to withdraw fren!")
-            app.done()
+          } else {
+            app.term.echo("Nothing to withdraw fren!");
+            app.done();
           }
         } else {
           app.term.echo(

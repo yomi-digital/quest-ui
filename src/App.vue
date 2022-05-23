@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <div id="nav">
-      <img src="/yomi.gif" style="height:20px" />
+      <a href="/"><img src="/yomi.gif" style="height:20px" /></a>
       <a
         href="https://twitter.com/YOMI_WEB3"
         target="_blank"
