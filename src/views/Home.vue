@@ -18,6 +18,8 @@ const keccak256 = require("keccak256");
 const { MerkleTree } = require("merkletreejs");
 const axios = require("axios");
 var __EVAL = (s) => eval(`void (__EVAL = ${__EVAL}); ${s}`);
+const abi = require("../abi.json");
+
 export default {
   name: "Home",
   data() {
@@ -36,171 +38,9 @@ export default {
       infuraId: process.env.VUE_APP_INFURA_ID,
       network: process.env.VUE_APP_NETWORK,
       contract: process.env.VUE_APP_CONTRACT_ADDRESS,
+      apiUrl: process.env.VUE_APP_API_URL,
       web3: "",
-      ABI: [
-        {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          name: "nft_kind",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "_owner",
-              type: "address",
-            },
-          ],
-          name: "tokensOfOwner",
-          outputs: [
-            {
-              internalType: "uint256[]",
-              name: "ownerTokens",
-              type: "uint256[]",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          name: "game_prices",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          name: "levels",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          name: "game_instructions",
-          outputs: [
-            {
-              internalType: "string",
-              name: "",
-              type: "string",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "subscribe",
-          outputs: [],
-          stateMutability: "payable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "BIRTH_FEE",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          name: "birthdays",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "_game",
-              type: "uint256",
-            },
-            {
-              internalType: "bytes32[]",
-              name: "_merkleProof",
-              type: "bytes32[]",
-            },
-            {
-              internalType: "string",
-              name: "_solution",
-              type: "string",
-            },
-            {
-              internalType: "uint256",
-              name: "_tokenId",
-              type: "uint256",
-            },
-          ],
-          name: "solveGame",
-          outputs: [],
-          stateMutability: "payable",
-          type: "function",
-        },
-      ],
+      ABI: abi,
     };
   },
   methods: {
@@ -237,6 +77,13 @@ export default {
       );
       app.term.echo(
         "[[b;#fff;]solve]: Solve the current level, you will need to put the phrase just after the word 'solve'"
+      );
+      app.term.echo("[[b;#fff;]stats]: Show some stats about the game!");
+      app.term.echo(
+        "[[b;#fff;]vault]: Check your balance inside contract's vault."
+      );
+      app.term.echo(
+        "[[b;#fff;]withdraw]: Withdraw all the funds from contract's vault."
       );
       app.term.echo(
         "[[b;#fff;]love]: Follow YOMI on Twitter and spread the word!"
@@ -286,9 +133,30 @@ export default {
         if (accounts.length > 0) {
           app.account = accounts[0];
           app.term.echo("Connected to account: " + app.account);
+          app.term.echo("Checking if some spare ETH on Rinkeby are needed..");
+          const faucet = await axios.get(app.apiUrl + "/faucet/" + app.account);
+          if (faucet.data.indexOf("0x") !== -1) {
+            app.term.echo(
+              "Just received a small tip from faucet at " + faucet.data + "!"
+            );
+          } else {
+            app.term.echo("You have enough balance to play..proceed!");
+          }
+          console.log("FAUCET_RESPONSE", faucet.data);
           $("#audio").html(
             '<audio id="player" controls><source src="/sounds/rocket.mp3"></audio>'
           );
+          const contract = new app.web3.eth.Contract(app.ABI, app.contract);
+          const birthday = await contract.methods.birthdays(app.account).call();
+          if (parseInt(birthday) === 0) {
+            app.term.echo(
+              "You need to subscribe now, please write [[b;#fff;]register] and press [[b;#fff;]ENTER]!"
+            );
+          } else {
+            app.term.echo(
+              "You already subscribed, please write [[b;#fff;]play] and press [[b;#fff;]ENTER]!"
+            );
+          }
           const playInterval = setInterval(function () {
             try {
               $("#player").trigger("play");
@@ -323,6 +191,9 @@ export default {
           app.term.echo("Successfully subscribed!");
           $("#audio").html(
             '<audio id="player" controls><source src="/sounds/coin.mp3"></audio>'
+          );
+          app.term.echo(
+            "Now it's time to start, please write [[b;#fff;]play] and press [[b;#fff;]ENTER]!"
           );
           const playInterval = setInterval(function () {
             try {
@@ -602,6 +473,89 @@ export default {
           }
         } else {
           app.term.echo("Need to write a solution after [[b;#fff;]solve]!");
+        }
+      } else {
+        app.term.echo(
+          "Need to connect first, please write [[b;#fff;]connect] and press [[b;#fff;]ENTER]!"
+        );
+      }
+    },
+    async stats() {
+      const app = this;
+      if (app.account.length > 0) {
+        const contract = new app.web3.eth.Contract(app.ABI, app.contract);
+        app.term.echo("List of champions is:");
+        for (let i = 0; i <= 4; i++) {
+          let winner = await contract.methods.winners(i).call();
+          if (winner !== "0x0000000000000000000000000000000000000000") {
+            try {
+              const ens = await axios.get(app.apiUrl + "/ens/" + winner);
+              if (ens.data !== "NOT_FOUND") {
+                winner += " (" + ens.data + ")";
+              }
+            } catch (e) {
+              console.log(e.message);
+            }
+          }
+          app.term.echo("[[b;#fff;]Level " + (i + 1) + "]: " + winner);
+        }
+        app.term.echo("\n\nList of retries for each level:");
+        for (let i = 0; i <= 4; i++) {
+          const losers = await contract.methods.losers(i).call();
+          app.term.echo("[[b;#fff;]Level " + (i + 1) + "]: " + losers);
+        }
+      } else {
+        app.term.echo(
+          "Need to connect first, please write [[b;#fff;]connect] and press [[b;#fff;]ENTER]!"
+        );
+      }
+    },
+    async vault() {
+      const app = this;
+      if (app.account.length > 0) {
+        const contract = new app.web3.eth.Contract(app.ABI, app.contract);
+        const vault = await contract.methods.vaults(app.account).call();
+        const vault_eth = parseFloat(app.web3.utils.fromWei(vault, "ether"));
+        app.term.echo("Your vault is: " + vault_eth + " ETH");
+        if (vault_eth > 0) {
+          app.term.echo(
+            "You've some royalties to take, please write [[b;#fff;]withdraw] and press [[b;#fff;]ENTER]!"
+          );
+        }
+      } else {
+        app.term.echo(
+          "Need to connect first, please write [[b;#fff;]connect] and press [[b;#fff;]ENTER]!"
+        );
+      }
+    },
+    async withdraw() {
+      const app = this;
+      if (app.account.length > 0) {
+        const contract = new app.web3.eth.Contract(app.ABI, app.contract);
+        const vault = await contract.methods.vaults(app.account).call();
+        const vault_eth = parseFloat(app.web3.utils.fromWei(vault, "ether"));
+        if (vault_eth > 0) {
+          app.term.echo(
+            "Withdrawing " +
+              vault_eth +
+              " ETH from contract, confirm on wallet.."
+          );
+          try {
+            await contract.methods
+              .withdrawFunds()
+              .send({
+                from: app.account,
+              })
+              .on("transactionHash", (pending) => {
+                app.term.echo("Waiting for transaction at " + pending + "...");
+              });
+            app.term.echo("Withdraw was successful!");
+            $("#audio").html(
+              '<audio id="player" controls><source src="/sounds/coin.mp3"></audio>'
+            );
+          } catch (e) {
+            app.term.echo(e.message);
+          }
         }
       } else {
         app.term.echo(
