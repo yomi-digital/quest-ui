@@ -23,6 +23,7 @@
         height="100%"
         id="died_video"
         controls
+        loop
       >
         <source src="/you_died.mp4" type="video/mp4" />
         <source src="/you_died.ogv" type="video/ogg" />
