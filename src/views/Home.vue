@@ -41,9 +41,38 @@ export default {
       apiUrl: process.env.VUE_APP_API_URL,
       web3: "",
       ABI: abi,
+      isWorking: false,
+      timer: "",
+      prompt: "",
+      spinner: {
+        interval: 80,
+        frames: ["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"],
+      },
     };
   },
   methods: {
+    wait() {
+      const app = this;
+      app.isWorking = true;
+      app.prompt = app.term.get_prompt();
+      let i = 0;
+      function set() {
+        const text = app.spinner.frames[i++ % app.spinner.frames.length];
+        app.term.set_prompt(text);
+      }
+      app.term.find(".cursor").hide();
+      set();
+      app.timer = setInterval(set, app.spinner.interval);
+    },
+    done() {
+      const app = this;
+      clearInterval(app.timer);
+      setTimeout(function () {
+        app.isWorking = false;
+        app.term.set_prompt(app.prompt);
+        app.term.find(".cursor").show();
+      }, app.spinner.interval);
+    },
     exit() {
       const app = this;
       $(".tv").addClass("collapse");
@@ -105,462 +134,527 @@ export default {
     },
     async connect() {
       const app = this;
-      app.term.echo("Init connection to wallet, please confirm...");
-      let providerOptions = {};
-      if (app.infuraId !== undefined) {
-        providerOptions = {
-          walletconnect: {
-            package: WalletConnectProvider,
-            options: {
-              infuraId: app.infuraId,
+      if (!app.isWorking) {
+        app.wait();
+        app.term.echo("Init connection to wallet, please confirm...");
+        let providerOptions = {};
+        if (app.infuraId !== undefined) {
+          providerOptions = {
+            walletconnect: {
+              package: WalletConnectProvider,
+              options: {
+                infuraId: app.infuraId,
+              },
             },
-          },
-        };
-      }
-      // Instantiating Web3Modal
-      const web3Modal = new Web3Modal({
-        cacheProvider: true,
-        providerOptions: providerOptions,
-      });
-      const provider = await web3Modal.connect();
-      app.web3 = await new Web3(provider);
-      // Checking if networkId matches
-      const netId = await app.web3.eth.net.getId();
-      if (parseInt(netId) !== app.networks[app.network]) {
-        app.term.echo("Switch to " + app.network + " network!");
-      } else {
-        const accounts = await app.web3.eth.getAccounts();
-        if (accounts.length > 0) {
-          app.account = accounts[0];
-          app.term.echo("Connected to account: " + app.account);
-          app.term.echo("Checking if some spare ETH on Rinkeby are needed..");
-          const faucet = await axios.get(app.apiUrl + "/faucet/" + app.account);
-          if (faucet.data.indexOf("0x") !== -1) {
-            app.term.echo(
-              "Just received a small tip from faucet at " + faucet.data + "!"
+          };
+        }
+        // Instantiating Web3Modal
+        const web3Modal = new Web3Modal({
+          cacheProvider: true,
+          providerOptions: providerOptions,
+        });
+        const provider = await web3Modal.connect();
+        app.web3 = await new Web3(provider);
+        // Checking if networkId matches
+        const netId = await app.web3.eth.net.getId();
+        if (parseInt(netId) !== app.networks[app.network]) {
+          app.term.echo("Switch to " + app.network + " network!");
+          app.done();
+        } else {
+          const accounts = await app.web3.eth.getAccounts();
+          if (accounts.length > 0) {
+            app.account = accounts[0];
+            app.term.echo("Connected to account: " + app.account);
+            app.term.echo("Checking if some spare ETH on Rinkeby are needed..");
+            const faucet = await axios.get(
+              app.apiUrl + "/faucet/" + app.account
             );
-          } else {
-            app.term.echo("You have enough balance to play..proceed!");
-          }
-          console.log("FAUCET_RESPONSE", faucet.data);
-          $("#audio").html(
-            '<audio id="player" controls><source src="/sounds/rocket.mp3"></audio>'
-          );
-          const contract = new app.web3.eth.Contract(app.ABI, app.contract);
-          const birthday = await contract.methods.birthdays(app.account).call();
-          if (parseInt(birthday) === 0) {
-            app.term.echo(
-              "You need to subscribe now, please write [[b;#fff;]register] and press [[b;#fff;]ENTER]!"
-            );
-          } else {
-            app.term.echo(
-              "You already subscribed, please write [[b;#fff;]play] and press [[b;#fff;]ENTER]!"
-            );
-          }
-          const playInterval = setInterval(function () {
-            try {
-              $("#player").trigger("play");
-              clearTimeout(playInterval);
-            } catch (e) {
-              console.log(e);
-              console.log("CAN'T PLAY");
+            if (faucet.data.indexOf("0x") !== -1) {
+              app.term.echo(
+                "Just received a small tip from faucet at " + faucet.data + "!"
+              );
+            } else {
+              app.term.echo("You have enough balance to play..proceed!");
             }
-          }, 200);
+            console.log("FAUCET_RESPONSE", faucet.data);
+            $("#audio").html(
+              '<audio id="player" controls><source src="/sounds/rocket.mp3"></audio>'
+            );
+            const contract = new app.web3.eth.Contract(app.ABI, app.contract);
+            const birthday = await contract.methods
+              .birthdays(app.account)
+              .call();
+            if (parseInt(birthday) === 0) {
+              app.term.echo(
+                "You need to subscribe now, please write [[b;#fff;]register] and press [[b;#fff;]ENTER]!"
+              );
+            } else {
+              app.term.echo(
+                "You already subscribed, please write [[b;#fff;]play] and press [[b;#fff;]ENTER]!"
+              );
+            }
+            app.done();
+            const playInterval = setInterval(function () {
+              try {
+                $("#player").trigger("play");
+                clearTimeout(playInterval);
+              } catch (e) {
+                console.log(e);
+                console.log("CAN'T PLAY");
+              }
+            }, 200);
+          } else {
+            app.done();
+          }
         }
       }
     },
     async register() {
       const app = this;
-      if (app.account.length > 0) {
-        app.term.echo("Checking if you born yet...");
-        const contract = new app.web3.eth.Contract(app.ABI, app.contract);
-        const birthday = await contract.methods.birthdays(app.account).call();
-        if (parseInt(birthday) === 0) {
-          app.term.echo("Please confirm operation in your wallet...");
-          const birth_fee = await contract.methods.BIRTH_FEE().call();
-          console.log("Birth fee is:", birth_fee);
-          const tx = await contract.methods
-            .subscribe()
-            .send({
-              from: app.account,
-              value: birth_fee.toString(),
-            })
-            .on("transactionHash", (pending) => {
-              app.term.echo("Waiting for transaction at " + pending + "...");
-            });
-          app.term.echo("Successfully subscribed!");
-          $("#audio").html(
-            '<audio id="player" controls><source src="/sounds/coin.mp3"></audio>'
-          );
-          app.term.echo(
-            "Now it's time to start, please write [[b;#fff;]play] and press [[b;#fff;]ENTER]!"
-          );
-          const playInterval = setInterval(function () {
+      if (!app.isWorking) {
+        if (app.account.length > 0) {
+          app.wait();
+          app.term.echo("Checking if you born yet...");
+          const contract = new app.web3.eth.Contract(app.ABI, app.contract);
+          const birthday = await contract.methods.birthdays(app.account).call();
+          if (parseInt(birthday) === 0) {
+            app.term.echo("Please confirm operation in your wallet...");
+            const birth_fee = await contract.methods.BIRTH_FEE().call();
+            console.log("Birth fee is:", birth_fee);
             try {
-              $("#player").trigger("play");
-              clearTimeout(playInterval);
+              await contract.methods
+                .subscribe()
+                .send({
+                  from: app.account,
+                  value: birth_fee.toString(),
+                })
+                .on("transactionHash", (pending) => {
+                  app.term.echo(
+                    "Waiting for transaction at " + pending + "..."
+                  );
+                });
+              app.term.echo("Successfully subscribed!");
+              $("#audio").html(
+                '<audio id="player" controls><source src="/sounds/coin.mp3"></audio>'
+              );
+              app.term.echo(
+                "Now it's time to start, please write [[b;#fff;]play] and press [[b;#fff;]ENTER]!"
+              );
+              const playInterval = setInterval(function () {
+                try {
+                  $("#player").trigger("play");
+                  clearTimeout(playInterval);
+                } catch (e) {
+                  console.log(e);
+                  console.log("CAN'T PLAY");
+                }
+              }, 200);
+              app.done();
             } catch (e) {
-              console.log(e);
-              console.log("CAN'T PLAY");
+              app.term.echo(e.message);
+              app.done();
             }
-          }, 200);
-          console.log(tx);
+          } else {
+            app.term.echo(
+              "You already subscribed, please write [[b;#fff;]play] and press [[b;#fff;]ENTER]!"
+            );
+            app.done();
+          }
         } else {
           app.term.echo(
-            "You already subscribed, please write [[b;#fff;]play] and press [[b;#fff;]ENTER]!"
+            "Need to connect first, please write [[b;#fff;]connect] and press [[b;#fff;]ENTER]!"
           );
         }
-      } else {
-        app.term.echo(
-          "Need to connect first, please write [[b;#fff;]connect] and press [[b;#fff;]ENTER]!"
-        );
       }
     },
     async play() {
       const app = this;
-      if (app.account.length > 0) {
-        const contract = new app.web3.eth.Contract(app.ABI, app.contract);
-        const birthday = await contract.methods.birthdays(app.account).call();
-        if (parseInt(birthday) > 0) {
-          app.term.echo("Checking your level...");
-          const level = await contract.methods.levels(app.account).call();
-          app.term.echo("Your level is: " + level);
-          app.term.echo("Fetching instructions from IPFS...");
-          const game_instructions = await contract.methods
-            .game_instructions(level)
-            .call();
-          if (game_instructions !== undefined && game_instructions.length > 0) {
-            $("#audio").html(
-              '<audio id="player" controls loop><source src="/sounds/play.mp3"></audio>'
-            );
-            const playInterval = setInterval(function () {
-              try {
-                $("#player").trigger("play");
-                clearTimeout(playInterval);
-              } catch (e) {
-                console.log(e);
-                console.log("CAN'T PLAY");
-              }
-            }, 200);
-            app.term.echo("Found instructions endpoint: " + game_instructions);
-            app.term.echo("Downloading instructions, please wait..");
-            const instructions = await axios.get(
-              game_instructions.replace(
-                "ipfs://",
-                "https://ipfs.yomi.digital/ipfs/"
-              )
-            );
-            if (instructions.data.image !== undefined) {
-              var img = new Image();
-              img.onload = function () {
-                var canvas = $("<canvas/>");
-                var context = canvas[0].getContext("2d");
-                canvas.attr({
-                  width: img.width,
-                  height: img.height,
-                });
-                app.term.echo(function () {
-                  var cols = app.term.cols();
-                  var width = cols / 2;
-                  var height = (width * img.height) / img.width;
-                  // height / 2 because dimension of single character is not square
-                  context.drawImage(img, 0, 0, width, height / 2);
-                  try {
-                    app.term.echo(
-                      app.asciify(context, " `~:*iVOEM", width, height / 2)
-                    );
-                    app.term.echo(
-                      "\n[[b;#fff;]" + instructions.data.name + "]"
-                    );
-                    app.term.echo("\n" + instructions.data.description);
-                    app.term.echo(
-                      "\n\n--\n\nNow it's time to solve, when you're ready type:"
-                    );
-                    app.term.echo(
-                      "\n[[b;#fff;]solve] `YOUR SOLUTION` and press [[b;#fff;]ENTER]"
-                    );
-                    return "\n";
-                  } catch (e) {
-                    app.term.exception(e);
-                    return "";
-                  }
-                });
-              };
-              axios
-                .get(
-                  instructions.data.image.replace(
-                    "ipfs://",
-                    "https://ipfs.yomi.digital/ipfs/"
-                  ),
-                  { responseType: "arraybuffer" }
-                )
-                .then((response) => {
-                  let blob = new Blob([response.data], {
-                    type: response.headers["content-type"],
-                  });
-                  img.src = URL.createObjectURL(blob);
-                });
-            } else {
-              app.term.echo("\n[[b;#fff;]" + instructions.data.name + "]");
-              app.term.echo("\n" + instructions.data.description);
-              app.term.echo(
-                "\n\nNow it's time to solve, when you're ready type:"
-              );
-              app.term.echo(
-                "\n\n--\n\n[[b;#fff;]solve] `YOUR SOLUTION` and press [[b;#fff;]ENTER]"
-              );
-              app.term.echo("\n");
-            }
-          } else {
-            $("#audio").html(
-              '<audio id="player" controls><source src="/sounds/completed.mp3"></audio>'
-            );
-            const playInterval = setInterval(function () {
-              try {
-                $("#player").trigger("play");
-                clearTimeout(playInterval);
-              } catch (e) {
-                console.log(e);
-                console.log("CAN'T PLAY");
-              }
-            }, 200);
-            app.term.echo("");
-            app.term.echo("");
-            app.term.echo(
-              "Thanks for completing this beta version of YOMI QUEST!"
-            );
-            app.term.echo(
-              "If you liked this project please write [[b;#fff;]love] and press [[b;#fff;]ENTER]"
-            );
-            app.term.echo("");
-            app.term.echo("");
-          }
-        } else {
-          app.term.echo(
-            "Need to setup your account first, please write [[b;#fff;]register] and press [[b;#fff;]ENTER]!"
-          );
-        }
-      } else {
-        app.term.echo(
-          "Need to connect first, please write [[b;#fff;]connect] and press [[b;#fff;]ENTER]!"
-        );
-      }
-    },
-    async solve(quest) {
-      const app = this;
-      let levelBefore;
-      if (app.account.length > 0) {
-        if (quest.length > 0) {
+      if (!app.isWorking) {
+        if (app.account.length > 0) {
+          app.wait();
           const contract = new app.web3.eth.Contract(app.ABI, app.contract);
           const birthday = await contract.methods.birthdays(app.account).call();
           if (parseInt(birthday) > 0) {
             app.term.echo("Checking your level...");
             const level = await contract.methods.levels(app.account).call();
-            levelBefore = level;
             app.term.echo("Your level is: " + level);
-
-            quest = quest.map((w) => w.toUpperCase());
-            const solution = quest[Math.floor(Math.random() * quest.length)];
-            const price = await contract.methods.game_prices(level).call();
-            app.term.echo(
-              "Trying to solve paying " +
-                app.web3.utils.fromWei(price, "ether") +
-                " ETH"
-            );
-
-            let leaves = await quest.map((x) => keccak256(x));
-            let tree = await new MerkleTree(leaves, keccak256, {
-              sortPairs: true,
-            });
-            const proof = tree.getHexProof(keccak256(solution));
-
-            app.term.echo("Cryptographic proof is: " + JSON.stringify(proof));
-            const tokensOfOwnerBefore = await contract.methods
-              .tokensOfOwner(app.account)
+            app.term.echo("Fetching instructions from IPFS...");
+            const game_instructions = await contract.methods
+              .game_instructions(level)
               .call();
-            app.term.echo(
-              "You own " +
-                tokensOfOwnerBefore.length +
-                " NFTs, searching useful token for coin."
-            );
-            if (tokensOfOwnerBefore.length > 0) {
-              let coin;
-              let found = false;
-              let r = 0;
-              while (found === false) {
-                const kind = await contract.methods
-                  .nft_kind(tokensOfOwnerBefore[r])
-                  .call();
-                if (parseInt(kind) === 0) {
-                  found = true;
-                  coin = tokensOfOwnerBefore[r];
-                  app.term.echo("Found token to use as coin: " + coin);
-                }
-                r++;
-                if (r === tokensOfOwnerBefore.length) {
-                  found = true;
-                }
-              }
-              if (coin !== undefined) {
+            if (
+              game_instructions !== undefined &&
+              game_instructions.length > 0
+            ) {
+              $("#audio").html(
+                '<audio id="player" controls loop><source src="/sounds/play.mp3"></audio>'
+              );
+              const playInterval = setInterval(function () {
                 try {
-                  await contract.methods
-                    .solveGame(level, proof, solution, coin)
-                    .send({
-                      from: app.account,
-                      value: price.toString(),
-                    })
-                    .on("transactionHash", (pending) => {
-                      app.term.echo(
-                        "Waiting for transaction at " + pending + "..."
-                      );
-                    });
-                  const levelAfter = await contract.methods
-                    .levels(app.account)
-                    .call();
-                  app.term.echo("\n--\nTransaction completed!");
-                  app.term.echo("Your level now is: " + levelAfter);
-                  if (levelBefore === levelAfter) {
-                    app.term.echo("\n--\nOh NO!\n\nAnswer was wrong...retry!!");
-                    $("#audio").html(
-                      '<audio id="player" controls><source src="/sounds/wrong.mp3"></audio>'
-                    );
-                    app.term.echo(
-                      "You need to show again the game? Write [[b;#fff;]play] and press [[b;#fff;]ENTER]!"
-                    );
-                    const playInterval = setInterval(function () {
-                      try {
-                        $("#player").trigger("play");
-                        clearTimeout(playInterval);
-                      } catch (e) {
-                        console.log(e);
-                        console.log("CAN'T PLAY");
-                      }
-                    }, 200);
-                  } else {
-                    app.term.echo(
-                      "\n--\nOh YEAH!\n\nAnswer was correct, go ahead!!"
-                    );
-                    app.term.echo(
-                      "It's time to solve another quest, write [[b;#fff;]play] and press [[b;#fff;]ENTER]!"
-                    );
-                    $("#audio").html(
-                      '<audio id="player" controls><source src="/sounds/clap.mp3"></audio>'
-                    );
-                    const playInterval = setInterval(function () {
-                      try {
-                        $("#player").trigger("play");
-                        clearTimeout(playInterval);
-                      } catch (e) {
-                        console.log(e);
-                        console.log("CAN'T PLAY");
-                      }
-                    }, 200);
-                  }
+                  $("#player").trigger("play");
+                  clearTimeout(playInterval);
                 } catch (e) {
-                  app.term.echo("Oh no! There's an error!");
-                  app.term.echo(e.message);
+                  console.log(e);
+                  console.log("CAN'T PLAY");
                 }
+              }, 200);
+              app.term.echo(
+                "Found instructions endpoint: " + game_instructions
+              );
+              app.term.echo("Downloading instructions, please wait..");
+              const instructions = await axios.get(
+                game_instructions.replace(
+                  "ipfs://",
+                  "https://ipfs.yomi.digital/ipfs/"
+                )
+              );
+              if (instructions.data.image !== undefined) {
+                var img = new Image();
+                img.onload = function () {
+                  var canvas = $("<canvas/>");
+                  var context = canvas[0].getContext("2d");
+                  canvas.attr({
+                    width: img.width,
+                    height: img.height,
+                  });
+                  app.term.echo(function () {
+                    var cols = app.term.cols();
+                    var width = cols / 2;
+                    var height = (width * img.height) / img.width;
+                    // height / 2 because dimension of single character is not square
+                    context.drawImage(img, 0, 0, width, height / 2);
+                    try {
+                      app.term.echo(
+                        app.asciify(context, " `~:*iVOEM", width, height / 2)
+                      );
+                      app.term.echo(
+                        "\n[[b;#fff;]" + instructions.data.name + "]"
+                      );
+                      app.term.echo("\n" + instructions.data.description);
+                      app.term.echo(
+                        "\n\n--\n\nNow it's time to solve, when you're ready type:"
+                      );
+                      app.term.echo(
+                        "\n[[b;#fff;]solve] `YOUR SOLUTION` and press [[b;#fff;]ENTER]"
+                      );
+                      app.done();
+                      return "\n";
+                    } catch (e) {
+                      app.term.exception(e);
+                      return "";
+                    }
+                  });
+                };
+                axios
+                  .get(
+                    instructions.data.image.replace(
+                      "ipfs://",
+                      "https://ipfs.yomi.digital/ipfs/"
+                    ),
+                    { responseType: "arraybuffer" }
+                  )
+                  .then((response) => {
+                    let blob = new Blob([response.data], {
+                      type: response.headers["content-type"],
+                    });
+                    img.src = URL.createObjectURL(blob);
+                  });
               } else {
-                app.term.echo("Can't find coins on your wallet!");
+                app.term.echo("\n[[b;#fff;]" + instructions.data.name + "]");
+                app.term.echo("\n" + instructions.data.description);
+                app.term.echo(
+                  "\n\nNow it's time to solve, when you're ready type:"
+                );
+                app.term.echo(
+                  "\n\n--\n\n[[b;#fff;]solve] `YOUR SOLUTION` and press [[b;#fff;]ENTER]"
+                );
+                app.term.echo("\n");
+                app.done();
               }
             } else {
-              app.term.echo("Sorry, you must own at least 1 NFT to play!");
+              $("#audio").html(
+                '<audio id="player" controls><source src="/sounds/completed.mp3"></audio>'
+              );
+              const playInterval = setInterval(function () {
+                try {
+                  $("#player").trigger("play");
+                  clearTimeout(playInterval);
+                } catch (e) {
+                  console.log(e);
+                  console.log("CAN'T PLAY");
+                }
+              }, 200);
+              app.term.echo("");
+              app.term.echo("");
+              app.term.echo(
+                "Thanks for completing this beta version of YOMI QUEST!"
+              );
+              app.term.echo(
+                "If you liked this project please write [[b;#fff;]love] and press [[b;#fff;]ENTER]"
+              );
+              app.term.echo("");
+              app.term.echo("");
+              app.done();
             }
           } else {
+            app.done();
             app.term.echo(
               "Need to setup your account first, please write [[b;#fff;]register] and press [[b;#fff;]ENTER]!"
             );
           }
         } else {
-          app.term.echo("Need to write a solution after [[b;#fff;]solve]!");
+          app.term.echo(
+            "Need to connect first, please write [[b;#fff;]connect] and press [[b;#fff;]ENTER]!"
+          );
         }
-      } else {
-        app.term.echo(
-          "Need to connect first, please write [[b;#fff;]connect] and press [[b;#fff;]ENTER]!"
-        );
+      }
+    },
+    async solve(quest) {
+      const app = this;
+      if (!app.isWorking) {
+        let levelBefore;
+        if (app.account.length > 0) {
+          if (quest.length > 0) {
+            app.wait();
+            const contract = new app.web3.eth.Contract(app.ABI, app.contract);
+            const birthday = await contract.methods
+              .birthdays(app.account)
+              .call();
+            if (parseInt(birthday) > 0) {
+              app.term.echo("Checking your level...");
+              const level = await contract.methods.levels(app.account).call();
+              levelBefore = level;
+              app.term.echo("Your level is: " + level);
+
+              quest = quest.map((w) => w.toUpperCase());
+              const solution = quest[Math.floor(Math.random() * quest.length)];
+              const price = await contract.methods.game_prices(level).call();
+              app.term.echo(
+                "Trying to solve paying " +
+                  app.web3.utils.fromWei(price, "ether") +
+                  " ETH"
+              );
+
+              let leaves = await quest.map((x) => keccak256(x));
+              let tree = await new MerkleTree(leaves, keccak256, {
+                sortPairs: true,
+              });
+              const proof = tree.getHexProof(keccak256(solution));
+              app.term.echo("Cryptographic proof is: " + JSON.stringify(proof));
+
+              const tokensOfOwnerBefore = await contract.methods
+                .tokensOfOwner(app.account)
+                .call();
+              app.term.echo(
+                "You own " +
+                  tokensOfOwnerBefore.length +
+                  " NFTs, searching useful token for coin."
+              );
+              if (tokensOfOwnerBefore.length > 0) {
+                let coin;
+                let found = false;
+                let r = 0;
+                while (found === false) {
+                  const kind = await contract.methods
+                    .nft_kind(tokensOfOwnerBefore[r])
+                    .call();
+                  if (parseInt(kind) === 0) {
+                    found = true;
+                    coin = tokensOfOwnerBefore[r];
+                    app.term.echo("Found token to use as coin: " + coin);
+                  }
+                  r++;
+                  if (r === tokensOfOwnerBefore.length) {
+                    found = true;
+                  }
+                }
+                if (coin !== undefined) {
+                  try {
+                    await contract.methods
+                      .solveGame(level, proof, solution, coin)
+                      .send({
+                        from: app.account,
+                        value: price.toString(),
+                      })
+                      .on("transactionHash", (pending) => {
+                        app.term.echo(
+                          "Waiting for transaction at " + pending + "..."
+                        );
+                      });
+                    const levelAfter = await contract.methods
+                      .levels(app.account)
+                      .call();
+                    app.term.echo("\n--\nTransaction completed!");
+                    app.term.echo("Your level now is: " + levelAfter);
+                    if (levelBefore === levelAfter) {
+                      app.term.echo(
+                        "\n--\nOh NO!\n\nAnswer was wrong...retry!!"
+                      );
+                      $("#audio").html(
+                        '<audio id="player" controls><source src="/sounds/wrong.mp3"></audio>'
+                      );
+                      app.term.echo(
+                        "You need to show again the game? Write [[b;#fff;]play] and press [[b;#fff;]ENTER]!"
+                      );
+                      app.done();
+                      const playInterval = setInterval(function () {
+                        try {
+                          $("#player").trigger("play");
+                          clearTimeout(playInterval);
+                        } catch (e) {
+                          console.log(e);
+                          console.log("CAN'T PLAY");
+                        }
+                      }, 200);
+                    } else {
+                      app.term.echo(
+                        "\n--\nOh YEAH!\n\nAnswer was correct, go ahead!!"
+                      );
+                      app.term.echo(
+                        "It's time to solve another quest, write [[b;#fff;]play] and press [[b;#fff;]ENTER]!"
+                      );
+                      $("#audio").html(
+                        '<audio id="player" controls><source src="/sounds/clap.mp3"></audio>'
+                      );
+                      app.done();
+                      const playInterval = setInterval(function () {
+                        try {
+                          $("#player").trigger("play");
+                          clearTimeout(playInterval);
+                        } catch (e) {
+                          console.log(e);
+                          console.log("CAN'T PLAY");
+                        }
+                      }, 200);
+                    }
+                  } catch (e) {
+                    app.term.echo("Oh no! There's an error!");
+                    app.term.echo(e.message);
+                    app.done();
+                  }
+                } else {
+                  app.term.echo("Can't find coins on your wallet!");
+                  app.done();
+                }
+              } else {
+                app.term.echo("Sorry, you must own at least 1 NFT to play!");
+                app.done();
+              }
+            } else {
+              app.term.echo(
+                "Need to setup your account first, please write [[b;#fff;]register] and press [[b;#fff;]ENTER]!"
+              );
+              app.done();
+            }
+          } else {
+            app.term.echo("Need to write a solution after [[b;#fff;]solve]!");
+          }
+        } else {
+          app.term.echo(
+            "Need to connect first, please write [[b;#fff;]connect] and press [[b;#fff;]ENTER]!"
+          );
+        }
       }
     },
     async stats() {
       const app = this;
-      if (app.account.length > 0) {
-        const contract = new app.web3.eth.Contract(app.ABI, app.contract);
-        app.term.echo("List of champions is:");
-        for (let i = 0; i <= 4; i++) {
-          let winner = await contract.methods.winners(i).call();
-          if (winner !== "0x0000000000000000000000000000000000000000") {
-            try {
-              const ens = await axios.get(app.apiUrl + "/ens/" + winner);
-              if (ens.data !== "NOT_FOUND") {
-                winner += " (" + ens.data + ")";
+      if (!app.isWorking) {
+        if (app.account.length > 0) {
+          app.wait();
+          const contract = new app.web3.eth.Contract(app.ABI, app.contract);
+          app.term.echo("List of champions is:");
+          for (let i = 0; i <= 4; i++) {
+            let winner = await contract.methods.winners(i).call();
+            if (winner !== "0x0000000000000000000000000000000000000000") {
+              try {
+                const ens = await axios.get(app.apiUrl + "/ens/" + winner);
+                if (ens.data !== "NOT_FOUND") {
+                  winner += " (" + ens.data + ")";
+                }
+              } catch (e) {
+                console.log(e.message);
               }
-            } catch (e) {
-              console.log(e.message);
             }
+            app.term.echo("[[b;#fff;]Level " + (i + 1) + "]: " + winner);
           }
-          app.term.echo("[[b;#fff;]Level " + (i + 1) + "]: " + winner);
+          app.term.echo("\n\nList of retries for each level:");
+          for (let i = 0; i <= 4; i++) {
+            const losers = await contract.methods.losers(i).call();
+            app.term.echo("[[b;#fff;]Level " + (i + 1) + "]: " + losers);
+          }
+          app.done();
+        } else {
+          app.term.echo(
+            "Need to connect first, please write [[b;#fff;]connect] and press [[b;#fff;]ENTER]!"
+          );
         }
-        app.term.echo("\n\nList of retries for each level:");
-        for (let i = 0; i <= 4; i++) {
-          const losers = await contract.methods.losers(i).call();
-          app.term.echo("[[b;#fff;]Level " + (i + 1) + "]: " + losers);
-        }
-      } else {
-        app.term.echo(
-          "Need to connect first, please write [[b;#fff;]connect] and press [[b;#fff;]ENTER]!"
-        );
       }
     },
     async vault() {
       const app = this;
-      if (app.account.length > 0) {
-        const contract = new app.web3.eth.Contract(app.ABI, app.contract);
-        const vault = await contract.methods.vaults(app.account).call();
-        const vault_eth = parseFloat(app.web3.utils.fromWei(vault, "ether"));
-        app.term.echo("Your vault is: " + vault_eth + " ETH");
-        if (vault_eth > 0) {
+      if (!app.isWorking) {
+        if (app.account.length > 0) {
+          app.wait();
+          const contract = new app.web3.eth.Contract(app.ABI, app.contract);
+          const vault = await contract.methods.vaults(app.account).call();
+          const vault_eth = parseFloat(app.web3.utils.fromWei(vault, "ether"));
+          app.term.echo("Your vault is: " + vault_eth + " ETH");
+          if (vault_eth > 0) {
+            app.term.echo(
+              "You've some royalties to take, please write [[b;#fff;]withdraw] and press [[b;#fff;]ENTER]!"
+            );
+          }
+          app.done();
+        } else {
           app.term.echo(
-            "You've some royalties to take, please write [[b;#fff;]withdraw] and press [[b;#fff;]ENTER]!"
+            "Need to connect first, please write [[b;#fff;]connect] and press [[b;#fff;]ENTER]!"
           );
         }
-      } else {
-        app.term.echo(
-          "Need to connect first, please write [[b;#fff;]connect] and press [[b;#fff;]ENTER]!"
-        );
       }
     },
     async withdraw() {
       const app = this;
-      if (app.account.length > 0) {
-        const contract = new app.web3.eth.Contract(app.ABI, app.contract);
-        const vault = await contract.methods.vaults(app.account).call();
-        const vault_eth = parseFloat(app.web3.utils.fromWei(vault, "ether"));
-        if (vault_eth > 0) {
-          app.term.echo(
-            "Withdrawing " +
-              vault_eth +
-              " ETH from contract, confirm on wallet.."
-          );
-          try {
-            await contract.methods
-              .withdrawFunds()
-              .send({
-                from: app.account,
-              })
-              .on("transactionHash", (pending) => {
-                app.term.echo("Waiting for transaction at " + pending + "...");
-              });
-            app.term.echo("Withdraw was successful!");
-            $("#audio").html(
-              '<audio id="player" controls><source src="/sounds/coin.mp3"></audio>'
+      if (!app.isWorking) {
+        if (app.account.length > 0) {
+          app.wait();
+          const contract = new app.web3.eth.Contract(app.ABI, app.contract);
+          const vault = await contract.methods.vaults(app.account).call();
+          const vault_eth = parseFloat(app.web3.utils.fromWei(vault, "ether"));
+          if (vault_eth > 0) {
+            app.term.echo(
+              "Withdrawing " +
+                vault_eth +
+                " ETH from contract, confirm on wallet.."
             );
-          } catch (e) {
-            app.term.echo(e.message);
+            try {
+              await contract.methods
+                .withdrawFunds()
+                .send({
+                  from: app.account,
+                })
+                .on("transactionHash", (pending) => {
+                  app.term.echo(
+                    "Waiting for transaction at " + pending + "..."
+                  );
+                });
+              app.term.echo("Withdraw was successful!");
+              app.done();
+              $("#audio").html(
+                '<audio id="player" controls><source src="/sounds/coin.mp3"></audio>'
+              );
+            } catch (e) {
+              app.term.echo(e.message);
+              app.done();
+            }
+          }else{
+            app.term.echo("Nothing to withdraw fren!")
+            app.done()
           }
+        } else {
+          app.term.echo(
+            "Need to connect first, please write [[b;#fff;]connect] and press [[b;#fff;]ENTER]!"
+          );
         }
-      } else {
-        app.term.echo(
-          "Need to connect first, please write [[b;#fff;]connect] and press [[b;#fff;]ENTER]!"
-        );
       }
     },
     color(r, g, b) {
@@ -602,7 +696,11 @@ export default {
         const cmd = $.terminal.parse_command(command);
         if (cmd.command !== undefined) {
           try {
-            if (app[cmd.name] !== undefined) {
+            if (
+              app[cmd.name] !== undefined &&
+              cmd.name !== "done" &&
+              cmd.name !== "wait"
+            ) {
               app.clear();
               app[cmd.name](cmd.args);
             } else {
