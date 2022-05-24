@@ -1,4 +1,6 @@
-# quest-ui
+# YOMI Quest
+
+YOMI Quest is an on-chain game based on Merkle Proofs, if you're looking for smart-contracts please go [here](https://github.com/yomi-digital/quest-contract).
 
 ## Project setup
 ```
@@ -19,6 +21,3 @@ yarn build
 ```
 yarn lint
 ```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).

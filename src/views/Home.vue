@@ -164,10 +164,16 @@ export default {
       app.term.echo(
         "[[b;#fff;]sos]: Enter YOMIVERSE and get help from the community."
       );
+      app.term.echo(
+        "[[b;#fff;]contribute]: YOMI Quest is open-source!"
+      );
       app.term.echo("\n");
     },
     love() {
       window.open("https://twitter.com/YOMI_WEB3", "_blank");
+    },
+    contribute() {
+      window.open("https://github.com/yomi-digital/quest-ui", "_blank");
     },
     sos() {
       window.open("https://discord.gg/2EaXhk9zfE", "_blank");
@@ -639,7 +645,7 @@ export default {
         if (app.account.length > 0) {
           app.wait();
           const contract = new app.web3.eth.Contract(app.ABI, app.contract);
-          app.term.echo("List of champions is:");
+          app.term.echo("List of champions:");
           for (let i = 0; i <= 4; i++) {
             let winner = await contract.methods.winners(i).call();
             if (winner !== "0x0000000000000000000000000000000000000000") {
