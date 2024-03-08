@@ -376,7 +376,7 @@ export default {
               const instructions = await axios.get(
                 game_instructions.replace(
                   "ipfs://",
-                  "https://ipfs.yomi.digital/ipfs/"
+                  "https://ipfs.io/ipfs/"
                 )
               );
               if (instructions.data.image !== undefined) {
@@ -420,7 +420,7 @@ export default {
                   .get(
                     instructions.data.image.replace(
                       "ipfs://",
-                      "https://ipfs.yomi.digital/ipfs/"
+                      "https://ipfs.io/ipfs/"
                     ),
                     { responseType: "arraybuffer" }
                   )
@@ -848,7 +848,7 @@ export default {
           };
           axios
             .get(
-              "https://ipfs.yomi.digital/ipfs/QmcYHMf9mGzmhZgyRuYpzkM9cmYJ1c3J5VWyywUW3HDnEF",
+              "https://ipfs.io/ipfs/QmcYHMf9mGzmhZgyRuYpzkM9cmYJ1c3J5VWyywUW3HDnEF",
               { responseType: "arraybuffer" }
             )
             .then((response) => {
